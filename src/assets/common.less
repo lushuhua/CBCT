@@ -1,0 +1,120 @@
+@import "//at.alicdn.com/t/font_813502_f7x3d7tc2f.css";
+//定义变量
+@primary-color: #1890FF;
+@info-color: #2db7f5;
+@success-color: #1FA269;
+@processing-color: @primary-color;
+@warning-color: #FAAD14;
+@error-color: #F5222D;
+@normal-color: #e6ebf1;
+
+@p-color-light-blue: #C0D0EB; //图片或文字的浅蓝色背景-预审页
+
+@color0: #000;
+@color3: #333;
+@color6: #666;
+@color9: #999;
+@color-default: #000000;
+@p-border-color: #e1e1e1;
+@bold-font-color: #103153;
+
+@body-bg-color: #EEEFF3;
+@basepx: 1px;
+@shu-color: #D8D8D8;
+body{overflow:hidden; background: #fff}
+input, button {
+  border: none;
+}
+//常用边距
+.gapping(@counter, @i: 0) when (@i <=@counter) {
+  .margin-@{i} {
+    margin: @i*@basepx;
+  }
+  .margin-0-@{i} {
+    margin: 0 @i*@basepx;
+  }
+  .margin-@{i}-0 {
+    margin: @i*@basepx 0;
+  }
+  .margin-t-@{i} {
+    margin-top: @i*@basepx;
+  }
+  .margin-b-@{i} {
+    margin-bottom: @i*@basepx;
+  }
+  .margin-l-@{i} {
+    margin-left: @i*@basepx;
+  }
+  .margin-r-@{i} {
+    margin-right: @i*@basepx;
+  }
+  .margin-lr-@{i} {
+    margin-left: @i*@basepx;
+    margin-right: @i*@basepx;
+  }
+  .margin-tb-@{i} {
+    margin-top: @i*@basepx;
+    margin-bottom: @i*@basepx;
+  }
+  .padding-@{i} {
+    padding: @i*@basepx;
+  }
+  .padding-0-@{i} {
+    padding: 0 @i*@basepx;
+  }
+  .padding-@{i}-0 {
+    padding: @i*@basepx 0;
+  }
+  .padding-t-@{i} {
+    padding-top: @i*@basepx;
+  }
+  .padding-b-@{i} {
+    padding-bottom: @i*@basepx;
+  }
+  .padding-l-@{i} {
+    padding-left: @i*@basepx;
+  }
+  .padding-r-@{i} {
+    padding-right: @i*@basepx;
+  }
+  .padding-lr-@{i} {
+    padding-left: @i*@basepx;
+    padding-right: @i*@basepx;
+  }
+  .padding-tb-@{i} {
+    padding-top: @i*@basepx!important;
+    padding-bottom: @i*@basepx!important;
+  }
+  .gapping(@counter, @i + 1); // next iteration
+}
+.gapping(30);
+
+
+hr {
+  margin: 30px 0px;
+  border: none;
+  border-top: 1px solid #e1e1e1;
+}
+.bg-shadow{
+  background:#fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,.15);
+}
+.bg-white{background:#fff}
+.color-white{color:#fff}
+.flex{display: flex}
+.padding-l-20{padding:20px}
+.flex{display: flex;align-items: center}
+.just-space-between{justify-content: space-between}
+.orderDetail span{padding-right:60px;}
+li{list-style: none}
+ul{padding-left:0}
+.kelper{position: relative}
+.canvasMask {
+  position: absolute;
+  top:0;
+  width:100%;
+  height:100%;
+  .l{ height: 100%;  position: absolute }
+  .rt, .rb{height: 50%; position: absolute;right:0}
+  .rb {top: 50%}
+}

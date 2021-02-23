@@ -1,0 +1,2 @@
+- Add user/passwd pair with a REST call:
+    curl -d '{"username":"alice", "password":"123456"}' -H 'Content-Type:application/json' http://localhost:3000/curie-api/user/signexi
