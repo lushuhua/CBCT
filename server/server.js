@@ -50,8 +50,10 @@ const wss = new WebSocket.Server({ server,perMessageDeflate: {
 } });
 // const io = require('socket.io')(server);
 wss.on('connection',function (ws,req) {
-    require('./socketFuncs')(ws,req)
-    require('../utils/watchFile')(ws,req)
+    console.log("ws11111",ws);
+    console.log("req",req)
+    require('./socketFuncs')(ws,req);
+    require('../utils/watchFile')(ws,req);
 })
 
 

@@ -13,57 +13,33 @@ const readFile = (params, ws) => {
     var { dcmDir, level, key, path: url, pid } = params;
     //res.setHeader('Transfer-Encoding', 'chunked');
     var rawPath;
-    console.log(level)
     if (level == 0) {//如果是病人
-        // console.log('病人')
-        // rawPath = path.resolve(dcmDir , '../dcmRaw/data_dcm.raw');  
+        // 读取目录下的所有dcm文件
         rawPath = dcmDir;
     } else if (level == 2) {//如果是cbct"
         //获取cbct下面的raw文件
-        // const files = _.without(fs.readdirSync(url), '.DS_Store');
-        // console.log('====rawFile====', files);
-        // rawPath = path.join(url, '/', files[1]);
         rawPath = url;
-        console.log(rawPath)
     }
 
     var slat = fs.lstatSync(rawPath); //判断文件是不是文件夹
-    console.log(slat.isDirectory())
     if (slat.isDirectory()) {
         let files = fs.readdirSync(rawPath);
         let reg = /\.dcm$/
-        files = files.filter(file => reg.test(file)); // reg.test(file)
-        // let count = files.length;
-        // let i = 0;
+        files = files.filter(file => reg.test(file));
         files.forEach((file, index) => {
             var buffers = fs.readFileSync(rawPath + '/' + file);
-            var type = index === (files.length - 1) ? 'end' : '';
-            var obj = { buffers, level, key, type }
-            ws.send(JSON.stringify(obj));
-            // var readStream = fs.createReadStream(rawPath + '/' + file);
-
-            // readStream.on('data', function (chunk) {
-            //     // console.log('===new buffer:===',chunk);
-            //     //res.write(chunk);
-            //     i++;
-            //     //ws.send('chunk', chunk);
-            //     ws.send(chunk)
-            // });
-            // readStream.on('end', function () {
-            //     console.log('i:', i)
-            //     // ws.send('chunk end', {i,level,key,pid});
-            //     var obj = { type: 'end', i, level, key, pid, count, index: index }
-
-            //     ws.send(JSON.stringify(obj));
-            //     console.log('读取结束');
-            //     i = 0;
-            // })
+            ws.send(buffers);
+            if (index == files.length - 1) {
+                var obj = { type: 'end', level, key, pid }
+                ws.send(JSON.stringify(obj));
+                console.log('读取结束')
+            }
         })
         return;
     } else {
         var buffers = fs.readFileSync(rawPath);
-        var type ='end';
-        var obj = { buffers, level, key, type, pid }
+        ws.send(buffers);
+        var obj = { type: 'end', level, key, pid }
         ws.send(JSON.stringify(obj));
         return;
     }
@@ -90,39 +66,37 @@ const readFile = (params, ws) => {
     })
 }
 
-
+let list =[];
 module.exports = function (ws, req) {
-    let list = [];
-    // const url = require('url');
-    // const pathname = url.parse(req.url).pathname;
-    list.push(ws);
-    console.log('=====当前连接人数=====:', list.length);
-    if (list.length > 1) {
-        //ws.close()
-    }
     let url = req.url;
-    // console.log('====url====:', url);
-    // ws.onmessage = function (evt) 
-    // { 
-    //    var received_msg = evt.data;
-    //    console.log('===========data=====',received_msg);
-    // };
+    ws.onmessage = function (evt) {
+        var received_msg = evt.data;
+    };
+    
     /*客户端开始拿raw 数据*/
     ws.on('message', function (params) {
-        console.log('接收到了客户端的参数:', params, url)
+        console.log('接收到了客户端的参数:', params, url);
+        // ws.send("curie");
         var data = JSON.parse(params)
         switch (data.type) {
             case 'chunk':
                 readFile(data, ws)
-                break
+                break;
+            case 'handshake':
+                list.push(ws);
+                console.log("handshake successful.");
+                ws.send("handshake");
+                break;
             case 'aquire':
-                ws.send(JSON.stringify({ msg: 'server received' + params }))
+                console.log('aquire');
+                console.log("patientInfo===>", data.patientsInfo)
+                ws = list[0];
+                ws.send(JSON.stringify({ type: "aquire", patientsInfo: data.patientsInfo }))
                 break;
             case 'autoRegisteration':
                 ws.send(JSON.stringify({ msg: 'server received' + params }))
         }
     });
-
     ws.on('error', function (error) {
         console.log('错误' + error);
     });
@@ -134,6 +108,7 @@ module.exports = function (ws, req) {
     ws.on('close', function (e) {
         //_.pull(list, ws);
         // ws.close()
+        console.log('关闭连接');
         console.log('在线人数' + list.length);
     })
     //require('../utils/watchFile')(ws)

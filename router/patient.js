@@ -13,20 +13,23 @@ const _ = require('lodash');
 /*获取病人列表 并获取cbct路径*/  
 router.get('/list', async function (req, res) {
     var patients = await Model.find().exec();
-    console.log('===============patients========', patients)
     var a = patients.map(async item => {
-        var obj = {};
-        const { _id, patientName, detail, type, path: purl } = item;
-        obj['title'] = patientName;
-        obj['key'] = _id;
-        obj['level'] = 0;//level 0: 病人
-        obj['detail'] = detail;
+        var obj = {}
+        const _id = item._id;
         var dcmFile = await ModelFilePath
             .find({ patientId: _id, type: "CT" })
-            .select('_id patientId pid name type path')
+            .select('patientName patientId age sex idPatients level path')
             .exec();
         if (dcmFile.length > 0) {
-            obj.dcmPath = dcmFile[0].path;
+            const { patientName, patientId, age, sex, idPatients, level, path} = dcmFile[0];
+            obj.title = patientName;
+            obj.key = patientId;
+            obj.age = age;
+            obj.sex = sex;
+            obj.idPatients = idPatients;
+            obj.level = level;
+            obj.dcmPath = path;
+            obj.detail = {};
         }
         obj['children'] = await ModelFilePath
             .find({ patientId: _id, type: "cbct" })
@@ -39,14 +42,15 @@ router.get('/list', async function (req, res) {
             obj1['path'] = url;
             // obj['dcmPath'] = path.resolve(url,'../dcm');
             // obj['path'] = path.resolve(url,'../../');
-            // obj['type'] = 'cname'
+            // obj['type'] = 'cname';
             obj1['title'] = name;
             obj1['key'] = _id;
             obj1['type'] = type;
             obj1['level'] = 2;
-            obj1['detail'] = detail;
+            obj1['detail'] = {};
             return obj1;
         });
+        // console.log("obj===>", obj)
         return obj;
     });
     Promise.all(a).then(res1 => {
@@ -74,10 +78,11 @@ router.post('/rawFile', function (req, res) {
     var readStream = fs.createReadStream(rawPath);
     var i = 0;
     readStream.on('data', function (chunk) {
-        //console.log('===new buffer:===',chunk);
+        console.log('===new buffer:===',chunk);
         //res.write(chunk);
         i++;
-        socket.emit('chunk', chunk.toString('base64'));
+        // socket.emit('chunk', chunk.toString('base64'));///////////////////////不需要base64，直接二进制
+        socket.emit('chunk', chunk);///////////////////////不需要base64，直接二进制
     });
     readStream.on('end', function () {
         socket.emit('chunk end', { i, level, key, pid });

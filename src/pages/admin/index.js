@@ -76,7 +76,8 @@ class Index extends Component {
         if(!window.ws) {
             window.ws = new WebSocket(`ws://${this.host}`);
             window.ws.addEventListener('message',  (evt)=> {
-                console.log(evt)
+                console.log(evt);
+                console.log(window.ws );
                 if(evt.data.constructor == ArrayBuffer || JSON.parse(evt.data).type =='end') {
                 }else {
                     if( evt.data.indexOf('newPatient')>0){
@@ -87,7 +88,7 @@ class Index extends Component {
             window.ws.binaryType = 'arraybuffer'
             
             window.ws.onclose= (e)=>{
-                console.log('关闭',e)
+                console.log('11关闭',e)
             }
         }
     }
@@ -99,7 +100,7 @@ class Index extends Component {
         if(showSideBar && showPatientInfo){
             this.setState({action,kpData,curRow})
         }else{
-            this.setState({action,kpData,curRow}) // 这两个怎么一样的    我也不晓得。。。
+            this.setState({action,kpData,curRow}) 
         }
     }
     fnChange(e){
@@ -186,6 +187,7 @@ class Index extends Component {
         })
     }
     togglePatientInfo(){
+        
         var show = !this.state.showPatientInfo;
         this.props.dispatch({type:'setData',payload:{key:'showPatientInfo',value:show}});
         this.setState({showPatientInfo:show});
@@ -198,20 +200,27 @@ class Index extends Component {
         if(!window.ws){
             this.connect()
         }
-
+        const { age, title, idPatients } = this.props.app.curNode;
+        const patientsInfo = {
+            patientName: title,
+            age,
+            idPatients
+        }
         setTimeout(()=>{
             if(type == 'aquire') {
-                window.ws.send(JSON.stringify({type:'aquire'}))
+                window.ws.send(JSON.stringify({type:'aquire', patientsInfo}))
             }else {
                 window.ws.send(JSON.stringify({type:'autoRegisteration'}))
             }
         },1000)
 
     }
-    startWs(type){
-        //if(window.ws) window.ws.close()
-        console.log(1111)
-        this.connect1(type)
+    startWs(type){  
+
+        //if(window.ws) window.ws.close();
+        // ws.send({"type":"aquire"})
+        console.log("send",11112222)
+        this.connect1(type);  
     }
     render() {
         //const {kpData} = this.props.app;

@@ -24,7 +24,7 @@ import { getPatientList } from "@/services/api";
 import { getRes } from "@/utils";
 import { base64ToUint8Array, concatArrayBuffer } from "@/utils/utils";
 import { usedTime } from "../../utils/utils";
-import {DicomObject, CTImage, CTVolume} from "@/utils/dic.js";
+import { DicomObject, CTImage, CTVolume } from "@/utils/dic.js";
 var config = require('../../../config/index')
 var i = 0;
 var arr = [];
@@ -59,7 +59,7 @@ class SideL extends Component {
     }
     componentDidMount() {
         getPatientList().then(res => {
-            console.log(res);
+            console.log("res======>",res);
             getRes(res, data => {
                 const handleIcon = (d) => {
                     return d.map(item => {
@@ -88,9 +88,9 @@ class SideL extends Component {
             var { dcmPath, level, path, key, pid, detail: { shift } } = info.node;
             console.log('=====info.node=======', info.node);
             // if (info.node.level == '0') {
-                this.props.dispatch({ type: 'setData', payload: { key: 'curNode', value: info.node } });
+            this.props.dispatch({ type: 'setData', payload: { key: 'curNode', value: info.node } });
             // }
-            
+
             if (shift) {
                 var { kpData } = this.props.app
                 kpData['slider_shift_x'] = shift['slider_shift_x']
@@ -100,7 +100,7 @@ class SideL extends Component {
             }
 
             if (key == this.props.app.currentKey) return;
-            this.props.dispatch({ type: 'setData', payload: { key: 'loading', value: true } })  
+            this.props.dispatch({ type: 'setData', payload: { key: 'loading', value: true } })
             this.connect()
             if (buffers[key]) {
                 //病人
@@ -118,13 +118,13 @@ class SideL extends Component {
                     const { treeData } = this.state;
                     var parent = treeData.find(item => item.key == pid);
                     // if (!buffers[pid]) {
-                        this.getRawFile({ dcmDir: parent.dcmPath, level: parent.level, key: pid });
-                        //当primary 数据接受完毕再请求第二批数据
-                        EventBus.addListener('recieveEnd', (res) => {
-                            console.log('primary over')
-                            this.props.dispatch({ type: 'setData', payload: { key: 'loading', value: true } });
-                            this.getRawFile({ level, path, key, pid });
-                        })
+                    this.getRawFile({ dcmDir: parent.dcmPath, level: parent.level, key: pid });
+                    //当primary 数据接受完毕再请求第二批数据
+                    EventBus.addListener('recieveEnd', (res) => {
+                        console.log('primary over')
+                        this.props.dispatch({ type: 'setData', payload: { key: 'loading', value: true } });
+                        this.getRawFile({ level, path, key, pid });
+                    })
                     // } else {
                     //     this.getRawFile({ level, path, key, pid });
                     // }
@@ -148,45 +148,37 @@ class SideL extends Component {
     startListenSocket() {
         if (!window.ws) this.connect()
         //下面开始监听websocket
-        var startTime = new Date();
+        var startTime = Date.now();
         window.ws.addEventListener('message', (event) => {
-            var data = JSON.parse(event.data)
             // if (data.buffers.data.constructor != ArrayBuffer) return
-            const { level, key, type, pid } = data;
-            const buffers = data.buffers.data;
-            fileList.push(buffers);
-            console.log("type====>", type)
-            if (type === 'end') {
-                console.log(11111)
-                ws.close();
-                window.ws = null;
-                console.log(level, key, pid)
-                this.readDicom(level, key, pid);
-            }
-            // if (!(event.data.constructor == ArrayBuffer || JSON.parse(event.data).type == 'end')) return
-            // if (data.constructor == String) {
-            //     var msg = JSON.parse(data)
-            //     var endTime = new Date();
-            //     console.log(usedTime(startTime, endTime))
-            //     // this.chunkEnd(msg, arr, i)
-            //     console.log(i)
-            //     if ((msg.count - 1) == msg.index) {
-            //         ws.close()
-            //         window.ws = null
-            //         console.log("arr=====>", arr, i)
-            //     }
-            // } else {
-            //     arr.push(data);
-            //     // i++;
-            //     // console.log('我收到管理员的chunk了:' + i);
+            // const { level, key, type, pid } = data;
+            // const buffers = data.buffers.data;
+            // fileList.push(buffers);
+            // console.log("type====>", type)
+            // if (type === 'end') {
+            //     console.log(11111222)
+            //     ws.close();
+            //     window.ws = null;
+            //     console.log(level, key, pid)
+            //     this.readDicom(level, key, pid);
             // }
+            const data = event.data;
+            if (!(data.constructor == ArrayBuffer || JSON.parse(data).type == 'end')) return
+            if (data.constructor == String) {
+                var msg = JSON.parse(data)
+                ws.close()
+                window.ws = null
+                var endTime = Date.now()
+                console.log(endTime - startTime)
+                this.chunkEnd(msg);
+            } else {
+                arr.push(data);
+            }
         });
     }
     readDicom(level, key, pid) {
-        
         let volume = new CTVolume;
         fileList.forEach((item, index) => {
-           
             var dcm = DicomObject.from_array_buffer(item);
             console.log(index, dcm)
             let image = undefined;
@@ -210,14 +202,15 @@ class SideL extends Component {
                     const numSlices = volume.numSlices;
                     const spacing = volume.spacing;
                     var { curNode } = this.props.app;
-                    curNode.detail.patinfo = {columns,rows,window,level: levelVal,numSlices,spacing};
+                    curNode.detail.patinfo = { columns, rows, window, level: levelVal, numSlices, spacing };
                     this.props.dispatch({ type: 'setData', payload: { key: 'curNode', value: curNode } });
                     console.log("curNode===>", curNode)
                 }
-                
+
                 var timer = setTimeout(() => {
                     if (curNode && curNode.level == 0) {//如果点击的是病人 直接渲染
-                        EventBus.emit('updateGl', { primary: key })  
+                        EventBus.emit('updateGl', { primary: key });
+
                     } else {
                         // 如果点击的是cbct
                         if (level == 0) { //curNode.level为2
@@ -236,109 +229,108 @@ class SideL extends Component {
         })
         fileList = [];
     }
-    chunkEnd = async (msg, arr, i) => {
-        console.log('我收到管理员的chunk end 了:', msg, 'arr len:', arr.length);
-        // if (arr.length == msg.i) {
-        
-        var dataBuffer = (concatArrayBuffer(arr)).buffer;//这里是arrayBuffer格式
-        console.log('dataBuffer===============',dataBuffer)
+    chunkEnd = msg => {
+        let volume = new CTVolume;
+        arr.forEach((item, index) => {
+            var dcm = DicomObject.from_array_buffer(item);
+            let image = undefined;
+            if (dcm) {
+                image = CTImage.from_dicom_object(dcm);
+            }
+            if (image) {
+                volume.add_slice(image);
+            }
+            if (index == arr.length - 1) {
+                //接受到buffer后存起来 切换的时候不用再次去请求
+                console.log("volume====>123", volume)
+                if (volume.slices.length > 0) {
+                    const { buffers } = this.props.app;
+                    buffers[msg.key] = volume.pixelData;
+                    this.props.dispatch({ type: 'setData', payload: { key: 'buffers', value: buffers } });
+                    const columns = volume.dim[0];
+                    const rows = volume.dim[1];
+                    const window = volume.slices[0].window;
+                    const levelVal = volume.slices[0].level;
+                    const numSlices = volume.numSlices;
+                    const spacing = volume.spacing;
+                    var { curNode } = this.props.app;
+                    curNode.detail.patinfo = { columns, rows, window, level: levelVal, numSlices, spacing };
+                    this.props.dispatch({ type: 'setData', payload: { key: 'curNode', value: curNode } });
+                    console.log("curNode===>", curNode);
+                }
+
+                var timer = setTimeout(() => {
+                    if (curNode && curNode.level == 0) {//如果点击的是病人 直接渲染
+                        EventBus.emit('updateGl', { primary: msg.key });
+
+                    } else {
+                        // 如果点击的是cbct
+                        if (msg.level == 0) { //curNode.level为2
+                            //this.glRender({primary:msg.key});
+                            EventBus.emit('updateGl', { primary: msg.key })
+                            EventBus.emit('recieveEnd', true);
+                        } else if (msg.level == 2) {
+                            //this.glRender({primary:msg.pid,secondary:msg.key});
+                            console.log("level2222222222222222222222")
+                            EventBus.emit('updateGl', { primary: msg.pid, secondary: msg.key })
+                        }
+                    }
+                    clearInterval(timer);
+                }, 1000)
+            }
+        })
+        return;
+
         var blob = new Blob([dataBuffer], { type: 'application/octet-stream' });
         var file = new File([blob], 'a.dcm');
-        fileList.push(file);
 
         if ((msg.count - 1) == msg.index) {
-            console.log("fileList====>", fileList)
             let volume = new CTVolume;
             let count = 0;
-            for (let i = 0, f; f = fileList[i]; ++i) {
-                var reader = new FileReader();
-                reader.onload = function (e) {
-                    count++;
-                    var dcm = DicomObject.from_array_buffer(e.target.result);
-                    let image = undefined;
-                    if (dcm) {
-                        image = CTImage.from_dicom_object(dcm);
-                    }
-                    if (image) {
-                        volume.add_slice(image);
-                    }
-                    if (count == files.length) {
-                        //接受到buffer后存起来 切换的时候不用再次去请求
-                        console.log("volume====>", volume)
-                        const { buffers } = this.props.app;
-                        buffers[msg.key] = volume.pixelData;
-                        this.props.dispatch({ type: 'setData', payload: { key: 'buffers', value: buffers } });
+            // for (let i = 0, f; f = fileList[i]; ++i) {
+            var reader = new FileReader();
+            reader.readAsArrayBuffer(file);
+            reader.onload = function (e) {
+                count++;
+                console.log(e.target.result)
+                var dcm = DicomObject.from_array_buffer(e.target.result);
+                let image = undefined;
+                if (dcm) {
+                    image = CTImage.from_dicom_object(dcm);
+                }
+                if (image) {
+                    volume.add_slice(image);
+                }
+                if (count == fileList.length) {
+                    //接受到buffer后存起来 切换的时候不用再次去请求
+                    console.log("volume====>", volume)
+                    const { buffers } = this.props.app;
+                    buffers[msg.key] = volume.pixelData;
+                    this.props.dispatch({ type: 'setData', payload: { key: 'buffers', value: buffers } });
 
-                        const { curNode } = this.props.app;
-                        console.log("curNode===>", curNode)
-                        var timer = setTimeout(() => {
-                            if (curNode.level == 0) {//如果点击的是病人 直接渲染
-                                EventBus.emit('updateGl', { primary: key })  
-                            } else {
-                                // 如果点击的是cbct
-                                if (msg.level == 0) { //curNode.level为2
-                                    //this.glRender({primary:msg.key});
-                                    EventBus.emit('updateGl', { primary: msg.key })
-                                    EventBus.emit('recieveEnd', true);
-                                } else if (msg.level == 2) {
-                                    //this.glRender({primary:msg.pid,secondary:msg.key});
-                                    EventBus.emit('updateGl', { primary: msg.pid, secondary: msg.key })
-                                }
+                    const { curNode } = this.props.app;
+                    console.log("curNode===>", curNode)
+                    var timer = setTimeout(() => {
+                        if (curNode.level == 0) {//如果点击的是病人 直接渲染
+                            EventBus.emit('updateGl', { primary: key })
+
+                        } else {
+                            // 如果点击的是cbct
+                            if (msg.level == 0) { //curNode.level为2
+                                //this.glRender({primary:msg.key});
+                                EventBus.emit('updateGl', { primary: msg.key })
+                                EventBus.emit('recieveEnd', true);
+                            } else if (msg.level == 2) {
+                                //this.glRender({primary:msg.pid,secondary:msg.key});
+                                EventBus.emit('updateGl', { primary: msg.pid, secondary: msg.key })
                             }
-                            clearInterval(timer);
-                        }, 1000)
-                    }
+                        }
+                        clearInterval(timer);
+                    }, 1000)
                 }
             }
+            // }
         }
-        // var reader = new FileReader();
-        // // reader.readAsArrayBuffer(rawFile);
-        // reader.readAsArrayBuffer(file)
-        // reader.onload = function(e){
-        //     let buffer = e.target.result  //此时是arraybuffer类型
-        //     console.log("buffer=====>", buffer)
-        //     startHandleArrayBuffer(buffer)
-        // }
-
-        // const startHandleArrayBuffer = (dataBuffer)=>{
-        //     i = 0;
-        //     arr = [];
-
-        //     // var array_view = new Uint16Array(dataBuffer);
-        //     var array_view = new Int16Array(dataBuffer)
-        //     console.log("start of transforming...");
-        //     array_view.forEach((element, index, array) => array[index] += 1000);
-        //     console.log("end of transforming...");
-        //     console.log("JS - Read file complished.");
-
-        //     //接受到buffer后存起来 切换的时候不用再次去请求
-        //     const {buffers} = this.props.app;
-        //     buffers[msg.key] = dataBuffer;
-        //     this.props.dispatch({type:'setData',payload:{key:'buffers',value:buffers}});
-
-        //     const {curNode} = this.props.app;
-        //     console.log("curNode===>",curNode)
-        //     console.log('level======',msg.level)
-        //     var timer = setTimeout(()=>{
-        //         if(curNode.level == 0){//如果点击的是病人 直接渲染
-        //             //this.glRender({primary:msg.key});
-        //             EventBus.emit('updateGl',{primary:msg.key})  // 这里触发了这个事件
-        //             //
-        //         }else{
-        //             // 如果点击的是cbct
-        //             if(msg.level == 0){ //curNode.level为2
-        //                 //this.glRender({primary:msg.key});
-        //                 EventBus.emit('updateGl',{primary:msg.key})
-        //                 EventBus.emit('recieveEnd',true);
-        //             }else if(msg.level == 2){
-        //                 //this.glRender({primary:msg.pid,secondary:msg.key});
-        //                 EventBus.emit('updateGl',{primary:msg.pid,secondary:msg.key})
-        //             }
-        //         }
-        //         clearInterval(timer);
-        //     },1000)
-        // }
-        // }
     }
     render() {
         const { treeData } = this.state;

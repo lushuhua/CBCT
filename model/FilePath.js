@@ -20,6 +20,9 @@ var Sch = new Schema({
     createTime:{
         type: Date,
         default: Date.now
-    }
+    },
+    age: {type: Number},
+    sex: {type: String},
+    idPatients: {type: Number}
 });
 module.exports = mongoose.model(fileName,Sch);
